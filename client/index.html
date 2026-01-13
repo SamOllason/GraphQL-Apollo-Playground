@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GraphQL Hello World</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      padding: 40px;
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 2.5em;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 1.1em;
+    }
+    
+    .section {
+      margin-bottom: 40px;
+    }
+    
+    h2 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 1.5em;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 5px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    
+    button:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .input-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+      align-items: center;
+    }
+    
+    input {
+      padding: 10px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .output {
+      background: #f8f9fa;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px;
+      min-height: 100px;
+      max-height: 500px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    
+    .output.empty {
+      color: #999;
+      font-style: italic;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .loading {
+      color: #667eea;
+      font-weight: 600;
+    }
+    
+    .error {
+      color: #e74c3c;
+      background: #ffeaea;
+      border-color: #e74c3c;
+    }
+    
+    .success {
+      color: #27ae60;
+    }
+    
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    
+    .info-box strong {
+      color: #1976d2;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 GraphQL Hello World</h1>
+    <p class="subtitle">Learn GraphQL by fetching data with simple button clicks</p>
+    
+    <div class="info-box">
+      <strong>What is GraphQL?</strong> GraphQL is a query language for APIs that lets you request exactly the data you need. 
+      Click the buttons below to see GraphQL queries and mutations in action!
+    </div>
+    
+    <!-- Queries Section -->
+    <div class="section">
+      <h2>📖 Queries (Read Data)</h2>
+      <div class="button-group">
+        <button onclick="fetchAllUsers()">Get All Users</button>
+        <button onclick="fetchAllPosts()">Get All Posts</button>
+        <button onclick="fetchUserWithPosts()">Get User with Their Posts</button>
+      </div>
+      <div id="queryOutput" class="output empty">Results will appear here...</div>
+    </div>
+    
+    <!-- Mutations Section -->
+    <div class="section">
+      <h2>✏️ Mutations (Write Data)</h2>
+      <div class="input-group">
+        <input type="text" id="userName" placeholder="Enter name (e.g., John Doe)">
+        <input type="email" id="userEmail" placeholder="Enter email (e.g., john@example.com)">
+        <button onclick="createUser()">Create User</button>
+      </div>
+      <div class="input-group">
+        <input type="text" id="postTitle" placeholder="Enter post title">
+        <input type="text" id="postContent" placeholder="Enter post content">
+        <input type="text" id="postAuthorId" placeholder="Author ID (e.g., 1)">
+        <button onclick="createPost()">Create Post</button>
+      </div>
+      <div id="mutationOutput" class="output empty">Mutation results will appear here...</div>
+    </div>
+    
+    <!-- GraphQL Playground Link -->
+    <div class="section">
+      <h2>🎮 Advanced</h2>
+      <p style="margin-bottom: 10px;">Want to write your own queries? Try the GraphQL Playground:</p>
+      <button onclick="window.open('http://localhost:4000/graphql', '_blank')">Open GraphQL Playground</button>
+    </div>
+  </div>
+
+  <script>
+    const GRAPHQL_URL = 'http://localhost:4000/graphql';
+    
+    // Helper function to make GraphQL requests
+    async function graphqlRequest(query, variables = {}) {
+      try {
+        const response = await fetch(GRAPHQL_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query, variables }),
+        });
+        
+        const result = await response.json();
+        
+        if (result.errors) {
+          throw new Error(result.errors[0].message);
+        }
+        
+        return result.data;
+      } catch (error) {
+        throw error;
+      }
+    }
+    
+    // Display output helper
+    function displayOutput(elementId, data, isError = false) {
+      const element = document.getElementById(elementId);
+      element.classList.remove('empty', 'error');
+      
+      if (isError) {
+        element.classList.add('error');
+        element.textContent = '❌ Error: ' + data;
+      } else {
+        element.textContent = JSON.stringify(data, null, 2);
+      }
+    }
+    
+    // Show loading state
+    function showLoading(elementId) {
+      const element = document.getElementById(elementId);
+      element.classList.remove('empty', 'error');
+      element.innerHTML = '<span class="loading">⏳ Loading...</span>';
+    }
+    
+    // Query: Get all users
+    async function fetchAllUsers() {
+      showLoading('queryOutput');
+      const query = `
+        query {
+          users {
+            id
+            name
+            email
+          }
+        }
+      `;
+      
+      try {
+        const data = await graphqlRequest(query);
+        displayOutput('queryOutput', data);
+      } catch (error) {
+        displayOutput('queryOutput', error.message, true);
+      }
+    }
+    
+    // Query: Get all posts
+    async function fetchAllPosts() {
+      showLoading('queryOutput');
+      const query = `
+        query {
+          posts {
+            id
+            title
+            content
+            author {
+              name
+              email
+            }
+          }
+        }
+      `;
+      
+      try {
+        const data = await graphqlRequest(query);
+        displayOutput('queryOutput', data);
+      } catch (error) {
+        displayOutput('queryOutput', error.message, true);
+      }
+    }
+    
+    // Query: Get user with their posts
+    async function fetchUserWithPosts() {
+      showLoading('queryOutput');
+      const query = `
+        query {
+          user(id: "1") {
+            id
+            name
+            email
+            posts {
+              id
+              title
+              content
+            }
+          }
+        }
+      `;
+      
+      try {
+        const data = await graphqlRequest(query);
+        displayOutput('queryOutput', data);
+      } catch (error) {
+        displayOutput('queryOutput', error.message, true);
+      }
+    }
+    
+    // Mutation: Create a new user
+    async function createUser() {
+      const name = document.getElementById('userName').value.trim();
+      const email = document.getElementById('userEmail').value.trim();
+      
+      if (!name || !email) {
+        displayOutput('mutationOutput', 'Please enter both name and email', true);
+        return;
+      }
+      
+      showLoading('mutationOutput');
+      const mutation = `
+        mutation CreateUser($name: String!, $email: String!) {
+          createUser(name: $name, email: $email) {
+            id
+            name
+            email
+          }
+        }
+      `;
+      
+      try {
+        const data = await graphqlRequest(mutation, { name, email });
+        displayOutput('mutationOutput', data);
+        
+        // Clear inputs
+        document.getElementById('userName').value = '';
+        document.getElementById('userEmail').value = '';
+      } catch (error) {
+        displayOutput('mutationOutput', error.message, true);
+      }
+    }
+    
+    // Mutation: Create a new post
+    async function createPost() {
+      const title = document.getElementById('postTitle').value.trim();
+      const content = document.getElementById('postContent').value.trim();
+      const authorId = document.getElementById('postAuthorId').value.trim();
+      
+      if (!title || !content || !authorId) {
+        displayOutput('mutationOutput', 'Please enter title, content, and author ID', true);
+        return;
+      }
+      
+      showLoading('mutationOutput');
+      const mutation = `
+        mutation CreatePost($title: String!, $content: String!, $authorId: ID!) {
+          createPost(title: $title, content: $content, authorId: $authorId) {
+            id
+            title
+            content
+            author {
+              name
+            }
+          }
+        }
+      `;
+      
+      try {
+        const data = await graphqlRequest(mutation, { title, content, authorId });
+        displayOutput('mutationOutput', data);
+        
+        // Clear inputs
+        document.getElementById('postTitle').value = '';
+        document.getElementById('postContent').value = '';
+        document.getElementById('postAuthorId').value = '';
+      } catch (error) {
+        displayOutput('mutationOutput', error.message, true);
+      }
+    }
+  </script>
+</body>
+</html>
